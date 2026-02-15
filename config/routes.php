@@ -15,10 +15,11 @@ return function (Router $router): void {
     
     $canRolesRead = new PermissionMiddleware('roles.read');
     $canRolesCreate = new PermissionMiddleware('roles.create');
+    $canRolesUpdate = new PermissionMiddleware('roles.update');
 
-    $canUsersRead = new PermissionMiddleware('user.read'); 
-    $canUsersCreate = new PermissionMiddleware('user.create');
-    $canUsersUpdate = new PermissionMiddleware('user.update');
+    $canUserRead = new PermissionMiddleware('user.read'); 
+    $canUserCreate = new PermissionMiddleware('user.create');
+    $canUserUpdate = new PermissionMiddleware('user.update');
 
     // Auth
     $router->get('/', [AuthController::class, 'showLogin']);
@@ -33,10 +34,12 @@ return function (Router $router): void {
     $router->get('/roles', [RoleController::class, 'index'], [$auth, $canRolesRead]);
     $router->get('/roles/create', [RoleController::class, 'create'], [$auth, $canRolesCreate]);
     $router->post('/roles', [RoleController::class, 'store'], [$auth, $canRolesCreate]);
+    $router->get('/roles/edit', [RoleController::class, 'edit'], [$auth, $canRolesUpdate]);
+    $router->post('/roles/update', [RoleController::class, 'update'], [$auth, $canRolesUpdate]);
 
     // User
-    $router->get('/users', [UserController::class, 'index'], [$auth, $canUsersRead]);
-    $router->get('/users/create', [UserController::class, 'create'], [$auth, $canUsersCreate]);
-    $router->post('/users', [UserController::class, 'store'], [$auth, $canUsersCreate]);
-    $router->post('/users/toggle-active', [UserController::class, 'toggleActive'], [$auth, $canUsersUpdate]);
+    $router->get('/users', [UserController::class, 'index'], [$auth, $canUserRead]);
+    $router->get('/users/create', [UserController::class, 'create'], [$auth, $canUserCreate]);
+    $router->post('/users', [UserController::class, 'store'], [$auth, $canUserCreate]);
+    $router->post('/users/toggle-active', [UserController::class, 'toggleActive'], [$auth, $canUserUpdate]);
 };

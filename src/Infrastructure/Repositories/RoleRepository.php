@@ -22,4 +22,18 @@ class RoleRepository
         $stmt->execute([$name]);
         return (int)$this->pdo->lastInsertId();
     }
+
+    public function find(int $roleId): ?array
+    {
+        $stmt = $this->pdo->prepare("SELECT id, name FROM roles WHERE id = ? LIMIT 1");
+        $stmt->execute([$roleId]);
+        $role = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $role ?: null;
+    }
+
+    public function updateName(int $roleId, string $name): void
+    {
+        $stmt = $this->pdo->prepare("UPDATE roles SET name = ? WHERE id = ?");
+        $stmt->execute([$name, $roleId]);
+    }
 }

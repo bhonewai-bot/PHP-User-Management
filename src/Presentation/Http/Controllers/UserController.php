@@ -12,16 +12,29 @@ class UserController extends BaseController
 {
     public function index(): void
     {
-        $userRepo = new UserRepository($this->ctx['pdo']);
+        $pdo = $this->ctx['pdo'];
+
+        $userRepo = new UserRepository($pdo);
         $users = $userRepo->allWithRole();
 
+        $hasPermission = $this->ctx['hasPermission'];
+
         echo "<h2>Users</h2>";
-        echo "<a href='/users/create'>Create User</a><br><br>";
+        if ($hasPermission('user.create')) {
+            echo "<a href='/users/create'>Create User</a><br><br>";
+        } else {
+            echo "<br>";
+        }
 
         echo "<table border='1' cellpadding='6' cellspacing='0'>";
         echo "<tr>
-                <th>ID</th><th>Name</th><th>Username</th><th>Role</th>
-                <th>Email</th><th>Phone</th><th>Active</th>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Active</th>
               </tr>";
 
         foreach ($users as $user) {
@@ -33,6 +46,15 @@ class UserController extends BaseController
             $phone = htmlspecialchars($user['phone'] ?? '---');
             $active = ((int)$user['is_active'] === 1) ? 'Yes' : 'No';
 
+            $activeHtml = '';
+            if ($hasPermission('user.update')) {
+                $activeHtml = "
+                    <form method='post' action='/users/toggle-active' style='display:inline;'>
+                        <input type='hidden' name='id' value='{$id}'>
+                        <button type='submit'>Toggle</button>
+                    </form>";
+            }
+
             echo "<tr>
                     <td>{$id}</td>
                     <td>{$name}</td>
@@ -40,12 +62,7 @@ class UserController extends BaseController
                     <td>{$role}</td>
                     <td>{$email}</td>
                     <td>{$phone}</td>
-                    <td>
-                        <form method='post' action='/users/toggle-active' style='display:inline;'>
-                            <input type='hidden' name='id' value='{$id}'>
-                            <button type='submit'>Toggle</button>
-                        </form>
-                    </td>
+                    <td>{$activeHtml}</td>
                 </tr>";
         }
         echo "</table>";
@@ -53,7 +70,9 @@ class UserController extends BaseController
 
     public function create(): void
     {
-        $roleRepo = new RoleRepository($this->ctx['pdo']);
+        $pdo = $this->ctx['pdo'];
+
+        $roleRepo = new RoleRepository($pdo);
         $roles = $roleRepo->all();
 
         echo "<h2>Create User</h2>";
@@ -94,7 +113,9 @@ class UserController extends BaseController
     public function store(): void
     {
         try {
-            $useCase = new CreateUserUseCase($this->ctx['pdo']);
+            $pdo = $this->ctx['pdo'];
+
+            $useCase = new CreateUserUseCase($pdo);
             $useCase->execute($_POST);
 
             $this->redirect('/users');
@@ -111,6 +132,8 @@ class UserController extends BaseController
 
     public function toggleActive(): void
     {
+        $pdo = $this->ctx['pdo'];
+
         $userId = (int)$_POST['id'];
         if ($userId <= 0) {
             $this->json([
@@ -119,7 +142,7 @@ class UserController extends BaseController
             return;
         }
 
-        $userRepo = new UserRepository($this->ctx['pdo']);
+        $userRepo = new UserRepository($pdo);
         $userRepo->toggleActive($userId);
 
         $this->redirect('/users');

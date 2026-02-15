@@ -19,4 +19,25 @@ class RolePermissionRepository
             $stmt->execute([$roleId, $permissionId]);
         }
     }
+
+    public function permissionIdsForRole(int $roleId): array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT permission_id
+            FROM role_permissions
+            WHERE role_id = ?
+            ORDER BY permission_id ASC
+        ");
+
+        $stmt->execute([$roleId]);
+        return array_values(array_filter(array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN))));
+    }
+
+    public function replaceAll(int $roleId, array $permissionIds): void
+    {
+        $stmt = $this->pdo->prepare("DELETE FROM role_permissions WHERE role_id = ?")
+            ->execute([$roleId]);
+
+        $this->createMany($roleId, $permissionIds);
+    }
 }

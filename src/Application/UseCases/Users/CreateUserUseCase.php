@@ -37,9 +37,9 @@ class CreateUserUseCase
 
         $hash = password_hash($password, PASSWORD_BCRYPT);
 
-        $users = new UserRepository($this->pdo);
+        $userRepo = new UserRepository($this->pdo);
 
-        return $users->create([
+        return $userRepo->create([
             'name' => $name,
             'username' => $username,
             'role_id' => $roleId,
