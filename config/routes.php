@@ -42,4 +42,6 @@ return function (Router $router): void {
     $router->get('/users/create', [UserController::class, 'create'], [$auth, $canUserCreate]);
     $router->post('/users', [UserController::class, 'store'], [$auth, $canUserCreate]);
     $router->post('/users/toggle-active', [UserController::class, 'toggleActive'], [$auth, $canUserUpdate]);
+    $router->get('/users/edit', [UserController::class, 'edit'], [$auth, $canUserUpdate]);
+    $router->post('/users/update', [UserController::class, 'update'], [$auth, $canUserUpdate]);
 };

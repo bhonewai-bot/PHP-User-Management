@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Presentation\Http\Controllers;
 
 use App\Application\UseCases\Users\CreateUserUseCase;
+use App\Application\UseCases\Users\UpdateUserUseCase;
 use App\Infrastructure\Repositories\RoleRepository;
 use App\Infrastructure\Repositories\UserRepository;
 
@@ -35,6 +36,7 @@ class UserController extends BaseController
                 <th>Email</th>
                 <th>Phone</th>
                 <th>Active</th>
+                <th>Action</th>
               </tr>";
 
         foreach ($users as $user) {
@@ -44,7 +46,6 @@ class UserController extends BaseController
             $role = htmlspecialchars($user['role_name']);
             $email = htmlspecialchars($user['email'] ?? '---');
             $phone = htmlspecialchars($user['phone'] ?? '---');
-            $active = ((int)$user['is_active'] === 1) ? 'Yes' : 'No';
 
             $activeHtml = '';
             if ($hasPermission('user.update')) {
@@ -55,6 +56,14 @@ class UserController extends BaseController
                     </form>";
             }
 
+            $actions = [];
+
+            if ($hasPermission('user.update')) {
+                $actions[] = "<a href='/users/edit?id={$id}'>Edit</a>";
+            }
+
+            $actionHtml = count($actions) ? implode(' ', $actions) : '';
+
             echo "<tr>
                     <td>{$id}</td>
                     <td>{$name}</td>
@@ -63,6 +72,7 @@ class UserController extends BaseController
                     <td>{$email}</td>
                     <td>{$phone}</td>
                     <td>{$activeHtml}</td>
+                    <td>{$actionHtml}</td>
                 </tr>";
         }
         echo "</table>";
@@ -146,5 +156,107 @@ class UserController extends BaseController
         $userRepo->toggleActive($userId);
 
         $this->redirect('/users');
+    }
+
+    public function edit(): void
+    {
+        $pdo = $this->ctx['pdo'];
+
+        $userId = (int)$_GET['id'] ?? 0;
+        if ($userId <= 0) {
+            $this->json([
+                'error' => 'Invalid user id'
+            ], 422);
+            return;
+        }
+
+        $userRepo = new UserRepository($pdo);
+        $roleRepo = new RoleRepository($pdo);
+
+        $user = $userRepo->find($userId);
+        if (!$user) {
+            $this->json([
+                'error' => 'User not found'
+            ], 404);
+            return;
+        }
+
+        $roles = $roleRepo->all();
+
+        $name = htmlspecialchars($user['name']);
+        $username = htmlspecialchars($user['username']);
+        $email = htmlspecialchars($user['email'] ?? '');
+        $phone = htmlspecialchars($user['phone'] ?? '');
+        $address = htmlspecialchars($user['address'] ?? '');
+        $roleId = (int)$user['role_id'];
+        $gender = $user['gender'];
+        $isActive = $user['is_active'];
+
+        echo "<h2>Edit User</h2>";
+        echo "<form method='post' action='/users/update'>";
+        echo "<input type='hidden' name='id' value='{$userId}'>";
+
+        echo "Name<br><input name='name' value='{$name}' required><br><br>";
+        echo "Username<br><input name='username' value='{$username}' required><br><br>";
+
+        echo "Role<br><select name='role_id' required>";
+        foreach ($roles as $role) {
+            $roleId = (int)$role['id'];
+            $roleName = htmlspecialchars($role['name']);
+            $selected = $roleId === $user['role_id'] ? 'selected' : '';
+            echo "<option value='{$roleId}' {$selected}>{$roleName}</option>";
+        }
+        echo "</select><br><br>";
+
+        echo "Email<br><input name='email' value='{$email}'><br><br>";
+        echo "Phone<br><input name='phone' value='{$phone}'><br><br>";
+        echo "Address<br><input name='address' value='{$address}'><br><br>";
+
+        echo "Gender<br>
+            <select name='gender'>
+                <option value='' ".($gender === null ? "selected" : "").">-- select --</option>
+                <option value='1' ".((string)$gender === '1' ? "selected" : "").">Male</option>
+                <option value='0' ".((string)$gender === '0' ? "selected" : "").">Female</option>
+            </select><br><br>";
+
+        $checked = $isActive ? "checked" : "";
+        echo "<label><input type='checkbox' name='is_active' {$checked}> Active</label><br><br>";
+
+        echo "<button type='submit'>Update</button>";
+        echo "</form>";
+    }
+
+    public function update(): void
+    {
+        $pdo = $this->ctx['pdo'];
+
+        $userId = (int)$_POST['id'];
+        if ($userId <= 0) {
+            $this->json([
+                'error' => 'Invalid user id'
+            ], 422);
+            return;
+        }
+
+        try {
+            $useCase = new UpdateUserUseCase($pdo);
+            $useCase->execture($userId, $_POST);
+
+            foreach (array_keys($_SESSION) as $key) {
+                if (str_starts_with($key, 'permission_keys_')) {
+                    unset($_SESSION[$key]);
+                }
+            }
+
+            $this->redirect('/users');
+        } catch (\InvalidArgumentException $e) {
+            $this->json([
+                'error' => $e->getMessage()
+            ], 422);
+        } catch (\Throwable $e) {
+            $this->json([
+                'error' => $e->getMessage()
+            ], 400);
+        }
     }
 }

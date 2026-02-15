@@ -36,19 +36,19 @@ class UserRepository
             INSERT INTO admin_users 
                 (name, username, role_id, phone, email, address, password, gender, is_active)
             VALUES 
-                (:name, :username, :role_id, :phone, :email, :address, :password, :gender, :is_active)
+                (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
         $stmt->execute([
-            ':name' => $data['name'],
-            ':username' => $data['username'],
-            ':role_id' => $data['role_id'],
-            ':phone' => $data['phone'],
-            ':email' => $data['email'],
-            ':address' => $data['address'],
-            ':password' => $data['password'],
-            ':gender' => $data['gender'],
-            ':is_active' => $data['is_active']
+            $data['name'],
+            $data['username'],
+            $data['role_id'],
+            $data['phone'],
+            $data['email'],
+            $data['address'],
+            $data['password'],
+            $data['gender'],
+            $data['is_active']
         ]);
 
         return (int)$this->pdo->lastInsertId();
@@ -62,5 +62,39 @@ class UserRepository
             WHERE id = ?
         ");
         $stmt->execute([$userId]);
+    }
+
+    public function find(int $userId): ?array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT id, name, username, role_id, phone, email, address, gender, is_active
+            FROM admin_users
+            WHERE id = ?
+            LIMIT 1
+        ");
+        $stmt->execute([$userId]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $user ?: null;
+    }
+
+    public function update(int $userId, array $data): void
+    {
+        $stmt = $this->pdo->prepare("
+            UPDATE admin_users
+            SET name = ?, username = ?, role_id = ?, phone = ?, email = ?, address = ?, gender = ?, is_active = ?
+            WHERE id = ?
+        ");
+
+        $stmt->execute([
+            $data['name'],
+            $data['username'],
+            $data['role_id'],
+            $data['phone'],
+            $data['email'],
+            $data['address'],
+            $data['gender'],
+            $data['is_active'],
+            $userId
+        ]);
     }
 }
