@@ -8,26 +8,39 @@ final class Router
 {
     private array $routes = [];
 
-    public function get(string $path, array $handler): void
+    public function get(string $path, array $handler, array $middleware = []): void
     {
-        $this->routes['GET'][$path] = $handler;
+        $this->map('GET', $path, $handler, $middleware);
     }
 
-    public function post(string $path, array $handler): void
+    public function post(string $path, array $handler, array $middleware = []): void
     {
-        $this->routes['POST'][$path] = $handler;
+        $this->map('POST', $path, $handler, $middleware);
+    }
+
+    private function map(string $method, string $path, array $handler, array $middleware): void
+    {
+        $this->routes[$method][$path] = [
+            'handler' => $handler,
+            'middleware' => $middleware
+        ];
     }
 
     public function dispatch(string $method, string $path, array $ctx = []): void
     {
-        $handler = $this->routes[$method][$path] ?? null;
-        if ($handler === null) {
+        $route = $this->routes[$method][$path] ?? null;
+        
+        if ($route === null) {
             http_response_code(404);
             echo 'Not Found';
             return;
         }
 
-        [$class, $action] = $handler;
+        foreach ($route['middleware'] as $mw) {
+            $mw->__invoke();
+        }
+
+        [$class, $action] = $route['handler'];
         $controller = new $class($ctx);
         $controller->$action();
     }
