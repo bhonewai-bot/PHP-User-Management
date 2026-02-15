@@ -63,13 +63,20 @@ class AuthController extends BaseController
             return;
         }
 
+        foreach (array_keys($_SESSION) as $key) {
+            if (str_starts_with($key, 'permission_keys_')) {
+                unset($_SESSION[$key]);
+            }
+        }
+
         $_SESSION['user_id'] = $user['id'];
 
-        $this->redirect('/health');
+        $this->redirect('/users');
     }
 
     public function logout(): void
     {
+        $_SESSION = [];
         session_destroy();
         $this->redirect('/login');
     }

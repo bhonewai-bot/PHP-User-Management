@@ -6,7 +6,7 @@ namespace App\Presentation\Http\Middlewares;
 
 class AuthMiddleware
 {
-    public function __invoke(): void
+    public function __invoke(array $ctx): void
     {
         if (!isset($_SESSION['user_id'])) {
             header('Location: /login');

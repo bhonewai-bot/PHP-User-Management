@@ -37,7 +37,7 @@ class Router
         }
 
         foreach ($route['middleware'] as $mw) {
-            $mw->__invoke();
+            $mw->__invoke($ctx);
         }
 
         [$class, $action] = $route['handler'];

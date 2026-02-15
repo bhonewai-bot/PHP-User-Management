@@ -42,4 +42,28 @@ class PermissionRepository
 
         return array_values($grouped);
     }
+
+    public function keyForUserId(int $userId): array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT CONCAT(f.name, '.', p.name) AS permission_key
+            FROM admin_users u
+            JOIN roles r ON r.id = u.role_id
+            JOIN role_permissions rp ON rp.role_id = r.id
+            JOIN permissions p ON p.id = rp.permission_id
+            JOIN features f ON f.id = p.feature_id
+            WHERE u.id = ?
+            ORDER BY permission_key ASC
+        ");
+        $stmt->execute([$userId]);
+
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $keys = [];
+
+        foreach ($rows as $row) {
+            $keys[] = (string)$row['permission_key'];
+        }
+
+        return array_values(array_unique($keys));
+    }
 }
