@@ -6,7 +6,7 @@ namespace App\Presentation\Http\Controllers;
 
 use PDO;
 
-final class HealthController extends BaseController
+class HealthController extends BaseController
 {
     public function index(): void
     {

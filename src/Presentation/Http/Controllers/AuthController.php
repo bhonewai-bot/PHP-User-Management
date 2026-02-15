@@ -6,7 +6,7 @@ namespace App\Presentation\Http\Controllers;
 
 use PDO;
 
-final class AuthController extends BaseController
+class AuthController extends BaseController
 {
     public function showLogin(): void
     {

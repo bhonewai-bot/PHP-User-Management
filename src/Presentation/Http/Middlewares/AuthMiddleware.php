@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Presentation\Http\Middlewares;
 
-final class AuthMiddleware
+class AuthMiddleware
 {
     public function __invoke(): void
     {

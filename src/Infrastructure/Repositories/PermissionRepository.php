@@ -6,7 +6,7 @@ namespace App\Infrastructure\Repositories;
 
 use PDO;
 
-final class PermissionRepository
+class PermissionRepository
 {
     public function __construct(private PDO $pdo) {}
 

@@ -6,7 +6,7 @@ namespace App\Infrastructure\DB;
 
 use PDO;
 
-final class PdoConnection
+class PdoConnection
 {
     public static function connect(array $env): PDO 
     {

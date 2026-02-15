@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Presentation\Http\Controllers;
 
+use App\Application\UseCases\Roles\CreateRoleUseCase;
 use App\Infrastructure\Repositories\PermissionRepository;
 use App\Infrastructure\Repositories\RoleRepository;
 
-final class RoleController extends BaseController
+class RoleController extends BaseController
 {
     public function index(): void
     {
@@ -74,40 +75,19 @@ final class RoleController extends BaseController
 
     public function store(): void
     {
-        $pdo = $this->ctx['pdo'];
-
         $roleName = trim($_POST['name'] ?? '');
         $permissionIds = $_POST['permission_ids'] ?? [];
 
-        if ($roleName === '') {
-            $this->json([
-                'error' => 'Role name is required',
-            ], 422);
-            return;
-        }
-
-        $permissionIds = array_values(array_filter(array_map('intval', $permissionIds)));
-
         try {
-            $pdo->beginTransaction();
-
-            $stmtRole = $pdo->prepare("INSERT INTO roles (name) VALUES (?)");
-            $stmtRole->execute([$roleName]);
-            $roleId = (int)$pdo->lastInsertId();
-
-            if (count($permissionIds) > 0) {
-                $stmtPermission = $pdo->prepare("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)");
-                foreach ($permissionIds as $permissionId) {
-                    $stmtPermission->execute([$roleId, $permissionId]);
-                }
-            }
-
-            $pdo->commit();
+            $useCase = new CreateRoleUseCase($this->ctx['pdo']);
+            $useCase->execute($roleName, $permissionIds);
 
             $this->redirect('/roles');
+        } catch (\InvalidArgumentException $e) {
+            $this->json([
+                'error' => $e->getMessage()
+            ], 422);
         } catch (\Throwable $e) {
-            $pdo->rollBack();
-
             $this->json([
                 'error' => $e->getMessage()
             ], 400);
