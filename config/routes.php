@@ -17,9 +17,9 @@ return function (Router $router): void {
     $canRolesCreate = new PermissionMiddleware('roles.create');
     $canRolesUpdate = new PermissionMiddleware('roles.update');
 
-    $canUserRead = new PermissionMiddleware('user.read'); 
-    $canUserCreate = new PermissionMiddleware('user.create');
-    $canUserUpdate = new PermissionMiddleware('user.update');
+    $canUserRead = new PermissionMiddleware('users.read'); 
+    $canUserCreate = new PermissionMiddleware('users.create');
+    $canUserUpdate = new PermissionMiddleware('users.update');
 
     // Auth
     $router->get('/', [AuthController::class, 'showLogin']);

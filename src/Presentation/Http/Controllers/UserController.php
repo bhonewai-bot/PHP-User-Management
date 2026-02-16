@@ -18,64 +18,9 @@ class UserController extends BaseController
         $userRepo = new UserRepository($pdo);
         $users = $userRepo->allWithRole();
 
-        $hasPermission = $this->ctx['hasPermission'];
-
-        echo "<h2>Users</h2>";
-        if ($hasPermission('user.create')) {
-            echo "<a href='/users/create'>Create User</a><br><br>";
-        } else {
-            echo "<br>";
-        }
-
-        echo "<table border='1' cellpadding='6' cellspacing='0'>";
-        echo "<tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Username</th>
-                <th>Role</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Active</th>
-                <th>Action</th>
-              </tr>";
-
-        foreach ($users as $user) {
-            $id = (int)$user['id'];
-            $name = htmlspecialchars($user['name']);
-            $username = htmlspecialchars($user['username']);
-            $role = htmlspecialchars($user['role_name']);
-            $email = htmlspecialchars($user['email'] ?? '---');
-            $phone = htmlspecialchars($user['phone'] ?? '---');
-
-            $activeHtml = '';
-            if ($hasPermission('user.update')) {
-                $activeHtml = "
-                    <form method='post' action='/users/toggle-active' style='display:inline;'>
-                        <input type='hidden' name='id' value='{$id}'>
-                        <button type='submit'>Toggle</button>
-                    </form>";
-            }
-
-            $actions = [];
-
-            if ($hasPermission('user.update')) {
-                $actions[] = "<a href='/users/edit?id={$id}'>Edit</a>";
-            }
-
-            $actionHtml = count($actions) ? implode(' ', $actions) : '';
-
-            echo "<tr>
-                    <td>{$id}</td>
-                    <td>{$name}</td>
-                    <td>{$username}</td>
-                    <td>{$role}</td>
-                    <td>{$email}</td>
-                    <td>{$phone}</td>
-                    <td>{$activeHtml}</td>
-                    <td>{$actionHtml}</td>
-                </tr>";
-        }
-        echo "</table>";
+        $this->view('users/index', [
+            'users' => $users
+        ], 'Users');
     }
 
     public function create(): void
@@ -85,39 +30,24 @@ class UserController extends BaseController
         $roleRepo = new RoleRepository($pdo);
         $roles = $roleRepo->all();
 
-        echo "<h2>Create User</h2>";
-        echo "<form method='post' action='/users'>";
-
-        echo "Name<br><input name='name' required><br><br>";
-        echo "Username<br><input name='username' required><br><br>";
-        echo "Password<br><input name='password' type='password' required><br><br>";
-
-        echo "Role<br><select name='role_id' required>";
-        echo "<option value=''>-- select --</option>";
-
-        foreach ($roles as $role) {
-            $id = (int)$role['id'];
-            $name = htmlspecialchars($role['name']);
-
-            echo "<option value='{$id}'>{$name}</option>";
-        }
-        echo "</select><br><br>";
-
-        echo "Email<br><input name='email'><br><br>";
-        echo "Phone<br><input name='phone'><br><br>";
-        echo "Address<br><input name='address'><br><br>";
-
-        echo "Gender<br>
-            <select name='gender'>
-            <option value=''>-- select --</option>
-            <option value='1'>Male</option>
-            <option value='0'>Female</option>
-            </select><br><br>";
-
-        echo "<label><input type='checkbox' name='is_active' checked> Active</label><br><br>";
-
-        echo "<button type='submit'>Save</button>";
-        echo "</form>";
+        $this->view('users/form', [
+            'mode' => 'create',
+            'formAction' => '/users',
+            'submitLabel' => 'Save',
+            'pageHeading' => 'Create User',
+            'showPassword' => true,
+            'roles' => $roles,
+            'user' => [
+                'name' => '',
+                'username' => '',
+                'email' => '',
+                'phone' => '',
+                'address' => '',
+                'role_id' => 0,
+                'gender' => null,
+                'is_active' => 1
+            ]
+        ], 'Create User');
     }
 
     public function store(): void
@@ -144,7 +74,7 @@ class UserController extends BaseController
     {
         $pdo = $this->ctx['pdo'];
 
-        $userId = (int)$_POST['id'];
+        $userId = (int)($_POST['id'] ?? 0);
         if ($userId <= 0) {
             $this->json([
                 'error' => 'Invalid user id'
@@ -162,7 +92,7 @@ class UserController extends BaseController
     {
         $pdo = $this->ctx['pdo'];
 
-        $userId = (int)$_GET['id'] ?? 0;
+        $userId = (int)($_GET['id'] ?? 0);
         if ($userId <= 0) {
             $this->json([
                 'error' => 'Invalid user id'
@@ -183,54 +113,32 @@ class UserController extends BaseController
 
         $roles = $roleRepo->all();
 
-        $name = htmlspecialchars($user['name']);
-        $username = htmlspecialchars($user['username']);
-        $email = htmlspecialchars($user['email'] ?? '');
-        $phone = htmlspecialchars($user['phone'] ?? '');
-        $address = htmlspecialchars($user['address'] ?? '');
-        $roleId = (int)$user['role_id'];
-        $gender = $user['gender'];
-        $isActive = $user['is_active'];
-
-        echo "<h2>Edit User</h2>";
-        echo "<form method='post' action='/users/update'>";
-        echo "<input type='hidden' name='id' value='{$userId}'>";
-
-        echo "Name<br><input name='name' value='{$name}' required><br><br>";
-        echo "Username<br><input name='username' value='{$username}' required><br><br>";
-
-        echo "Role<br><select name='role_id' required>";
-        foreach ($roles as $role) {
-            $roleId = (int)$role['id'];
-            $roleName = htmlspecialchars($role['name']);
-            $selected = $roleId === $user['role_id'] ? 'selected' : '';
-            echo "<option value='{$roleId}' {$selected}>{$roleName}</option>";
-        }
-        echo "</select><br><br>";
-
-        echo "Email<br><input name='email' value='{$email}'><br><br>";
-        echo "Phone<br><input name='phone' value='{$phone}'><br><br>";
-        echo "Address<br><input name='address' value='{$address}'><br><br>";
-
-        echo "Gender<br>
-            <select name='gender'>
-                <option value='' ".($gender === null ? "selected" : "").">-- select --</option>
-                <option value='1' ".((string)$gender === '1' ? "selected" : "").">Male</option>
-                <option value='0' ".((string)$gender === '0' ? "selected" : "").">Female</option>
-            </select><br><br>";
-
-        $checked = $isActive ? "checked" : "";
-        echo "<label><input type='checkbox' name='is_active' {$checked}> Active</label><br><br>";
-
-        echo "<button type='submit'>Update</button>";
-        echo "</form>";
+        $this->view('users/form', [
+            'mode' => 'edit',
+            'formAction' => '/users/update',
+            'submitLabel' => 'Update',
+            'pageHeading' => 'Edit User',
+            'showPassword' => false,
+            'userId' => $userId,
+            'roles' => $roles,
+            'user' => [
+                'name' => (string)$user['name'],
+                'username' => (string)$user['username'],
+                'email' => (string)($user['email'] ?? ''),
+                'phone' => (string)($user['phone'] ?? ''),
+                'address' => (string)($user['address'] ?? ''),
+                'role_id' => (int)$user['role_id'],
+                'gender' => $user['gender'],
+                'is_active' => (int)$user['is_active']
+            ]
+        ], 'Edit User');
     }
 
     public function update(): void
     {
         $pdo = $this->ctx['pdo'];
 
-        $userId = (int)$_POST['id'];
+        $userId = (int)($_POST['id'] ?? 0);
         if ($userId <= 0) {
             $this->json([
                 'error' => 'Invalid user id'

@@ -10,24 +10,13 @@ class AuthController extends BaseController
 {
     public function showLogin(): void
     {
-        echo '
-        <h2>Login</h2>
-        <form method="post" action="/login">
-            <label>Username</label><br>
-            <input name="username" required><br><br>
-
-            <label>Password</label><br>
-            <input name="password" type="password" required><br><br>
-
-            <button type="submit">Login</button>
-        </form>
-        ';
+        $this->view('auth/login', [], 'Login');
     }
 
     public function login(): void
     {
         $pdo = $this->ctx['pdo'];
-        
+
         $username = trim($_POST['username'] ?? '');
         $password = (string)($_POST['password'] ?? '');
 

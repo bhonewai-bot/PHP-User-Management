@@ -19,33 +19,9 @@ class RoleController extends BaseController
         $roleRepo = new RoleRepository($pdo);
         $roles = $roleRepo->all();
 
-        $hasPermission = $this->ctx['hasPermission'];
-
-        echo "<h2>Roles</h2>";
-        if ($hasPermission('roles.create')) {
-            echo "<a href='/roles/create'>Create Role</a><br><br>";
-        } else {
-            echo "<br>";
-        }
-
-        echo "<table border='1' cellpadding='6' cellspacing='0'>";
-        echo "<tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Action</th>
-            </tr>";
-        foreach ($roles as $role) {
-            $action = '';
-            if ($hasPermission('roles.update')) {
-                $action = "<a href='/roles/edit?id={$role['id']}'>Edit</a>";
-            }
-            echo "<tr>
-                    <td>{$role['id']}</td>
-                    <td>{$role['name']}</td>
-                    <td>{$action}</td>
-                </tr>";
-        }
-        echo "</table>";
+        $this->view('roles/index', [
+            'roles' => $roles
+        ], 'Roles');
     }
 
     public function create(): void
@@ -55,46 +31,15 @@ class RoleController extends BaseController
         $permissionRepo = new PermissionRepository($pdo);
         $features = $permissionRepo->groupedByFeature();
 
-        echo "<h2>Create Role</h2>";
-        echo "<form method='post' action='/roles'>";
-        echo "<label>Role name</label><br>";
-        echo "<input name='name' required><br><br>";
-
-        echo "<h3>Role Permissions</h3>";
-
-        echo "<script>
-            function toggleFeature(featureId, source) {
-                const boxes = document.querySelectorAll('.perm-' + featureId);
-                boxes.forEach(b => b.checked = source.checked);
-            }
-        </script>";
-
-        foreach ($features as $feature) {
-            $featureId = $feature['feature_id'];
-            $featureName = htmlspecialchars($feature['feature_name']);
-            
-            echo "<fieldset style='margin-bottom:16px; padding:10px;'>";
-            echo "<legend><strong>{$featureName}</strong></legend>";
-
-            echo "<label>
-                    <input type='checkbox' onclick='toggleFeature({$featureId}, this)'>
-                    Select all
-                </label><br><br>";
-
-            foreach ($feature['permissions'] as $permission) {
-                $permissionId = $permission['id'];
-                $permissionName = htmlspecialchars($permission['name']);
-                echo "<label style='margin-right:12px; display:inline-block; min-width:90px;'>
-                        <input class='perm-{$featureId}' type='checkbox' name='permission_ids[]' value='{$permissionId}'>
-                        {$permissionName}
-                    </label>";
-            }
-
-            echo "</fieldset>";
-        }
-
-        echo "<button type='submit'>Save</button>";
-        echo "</form>";
+        $this->view('roles/form', [
+            'mode' => 'create',
+            'formAction' => '/roles',
+            'submitLabel' => 'Save',
+            'pageHeading' => 'Create Role',
+            'roleName' => '',
+            'features' => $features,
+            'selectedPermissionIds' => []
+        ], 'Create Role');
     }
 
     public function store(): void
@@ -118,13 +63,13 @@ class RoleController extends BaseController
                 'error' => $e->getMessage()
             ], 400);
         }
-    } 
+    }
 
     public function edit(): void
     {
         $pdo = $this->ctx['pdo'];
 
-        $roleId = (int)$_GET['id'] ?? 0;
+        $roleId = (int)($_GET['id'] ?? 0);
         if ($roleId <= 0) {
             $this->json([
                 'error' => 'Invalid role id'
@@ -146,53 +91,17 @@ class RoleController extends BaseController
 
         $features = $permissionRepo->groupedByFeature();
         $permissions = $rolePermissionRepo->permissionIdsForRole($roleId);
-        $permissionsMap = array_fill_keys($permissions, true);
 
-        $name = htmlspecialchars($role['name']);
-
-        echo "<h2>Edit Role</h2>";
-        echo "<form method='post' action='/roles/update'>";
-        echo "<input type='hidden' name='id' value='{$roleId}'>";
-
-        echo "<label>Role name</label><br>";
-        echo "<input name='name' value='{$name}' required><br><br>";
-
-        echo "<h3>Role Permissions</h3>";
-
-        echo "<script>
-            function toggleFeature(featureId, source) {
-                const boxes = document.querySelectorAll('.perm-' + featureId);
-                boxes.forEach(b => b.checked = source.checked);
-            }
-        </script>";
-
-        foreach ($features as $feature) {
-            $featureId = $feature['feature_id'];
-            $featureName = htmlspecialchars($feature['feature_name']);
-            
-            echo "<fieldset style='margin-bottom:16px; padding:10px;'>";
-            echo "<legend><strong>{$featureName}</strong></legend>";
-
-            echo "<label>
-                    <input type='checkbox' onclick='toggleFeature({$featureId}, this)'>
-                    Select all
-                </label><br><br>";
-
-            foreach ($feature['permissions'] as $permission) {
-                $permissionId = $permission['id'];
-                $permissionName = htmlspecialchars($permission['name']);
-                $checked = isset($permissionsMap[$permissionId]) ? 'checked' : '';
-                echo "<label style='margin-right:12px; display:inline-block; min-width:90px;'>
-                        <input class='perm-{$featureId}' type='checkbox' name='permission_ids[]' value='{$permissionId}' {$checked}>
-                        {$permissionName}
-                    </label>";
-            }
-
-            echo "</fieldset>";
-        }
-
-        echo "<button type='submit'>Update</button>";
-        echo "</form>";
+        $this->view('roles/form', [
+            'mode' => 'edit',
+            'formAction' => '/roles/update',
+            'submitLabel' => 'Update',
+            'pageHeading' => 'Edit Role',
+            'roleId' => $roleId,
+            'roleName' => (string)$role['name'],
+            'features' => $features,
+            'selectedPermissionIds' => $permissions
+        ], 'Edit Role');
     }
 
     public function update(): void
